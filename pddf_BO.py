@@ -58,6 +58,7 @@ idx_pool_train, idx_pool_other, data_array_x_pool_train, data_array_x_pool_other
 os.makedirs('data', exist_ok=True)
 os.makedirs('plot', exist_ok=True)
 
+
 learning_curve_path = 'data/learning_curves.csv'
 with open(learning_curve_path, 'w', newline='') as f:
     writer = csv.writer(f)
@@ -170,6 +171,40 @@ for it in range(num_iterations):
         plot_mean_std(y_true, preds_flat, stds, it, selected_indices)
         plot_parity(y_true, preds_flat, stds, selected_indices, it)
         plot_parity_interactive(y_true, preds_flat, stds, selected_indices, it, structure_names_pool_other)
+
+    
+    # Save data for this iteration
+    data_save_path = f'data/data_iteration_{it}.csv'
+    with open(data_save_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([f"# Most uncertain indices: {list(selected_indices)}"])
+        writer.writerow(['Index', 'Structure_Name', 'True Values', 'Predicted Values', 'Std Dev', 'Is_Selected', 'Split'])
+
+        # Validation set
+        for i, idx in enumerate(idx_pool_other):
+            writer.writerow([
+                idx,
+                structure_per_sample[idx],
+                float(y_true[i]),
+                float(preds_flat[i]),
+                float(stds[i]),
+                int(i in selected_indices),
+                'validation'
+            ])
+
+        # Training set
+        y_train_pred, y_train_std = gp.predict(data_array_x_pool_train, return_std=True)
+        for i, idx in enumerate(idx_pool_train):
+            writer.writerow([
+                idx,
+                structure_per_sample[idx],
+                float(data_array_y_pool_train[i][0]),
+                float(y_train_pred[i]),
+                float(y_train_std[i]),
+                0,
+                'train'
+            ])
+
 
     selected_actual_indices = idx_pool_other[selected_indices]
     idx_pool_train = np.append(idx_pool_train, selected_actual_indices)
