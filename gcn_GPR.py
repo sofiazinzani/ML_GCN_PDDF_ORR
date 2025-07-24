@@ -106,7 +106,41 @@ for it in range(num_iterations):
     deviating_points['Predicted Values'].extend(mean_preds[most_uncertain_indices, 0])
     deviating_points['Pred Std Dev'].extend(std_preds[most_uncertain_indices, 0])
 
-    # Save predictions and plots
+    # Salva file con predizioni complete (train + validation) per questa iterazione
+    csv_rows = []
+
+    for idx in idx_pool_other:
+        split = "validation"
+        pool_idx = np.where(idx_pool_other == idx)[0][0]
+        row = [
+            int(idx),
+            structure_per_sample[idx],
+            float(data_array_y[idx, 0]),
+            float(mean_preds[pool_idx, 0]),
+            float(std_preds[pool_idx, 0]),
+            split
+        ]
+        csv_rows.append(row)
+
+    for i, idx in enumerate(idx_pool_train):
+        split = "train"
+        row = [
+            int(idx),
+            structure_per_sample[idx],
+            float(data_array_y[idx, 0]),
+            float(train_preds[i, 0]),
+            float(train_stds[i, 0]),
+            split
+        ]
+        csv_rows.append(row)
+
+    csv_rows = sorted(csv_rows, key=lambda x: (x[5], x[0]))
+    with open(f'data/data_iteration_split_{it}.csv', 'w', newline='') as f_csv:
+        writer = csv.writer(f_csv)
+        writer.writerow(['Index', 'Structure_Name', 'True Values', 'Predicted Values', 'Std Dev', 'Split'])
+        writer.writerows(csv_rows)
+
+    # Save plots and deviating points at first and last iteration
     if it == 0 or it == num_iterations - 1:
         df_deviating = pd.DataFrame(deviating_points)
         df_deviating.to_csv(f'data/deviating_points_{it}.csv', index=False)
@@ -154,3 +188,4 @@ for it in range(num_iterations):
 pd.DataFrame(prediction_timing).to_csv('data/prediction_timing.csv', index=False)
 learning_df = pd.read_csv(learning_curve_path)
 save_learning_curves_plot(learning_df)
+
